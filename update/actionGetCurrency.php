@@ -38,7 +38,8 @@
 
         $ccodes = [];
 
-        $json = file_get_contents(CONFIG['api_url']);
+        // @ suppresses built in warnings so i can handle the error manually.
+        $json = @file_get_contents(CONFIG['api_url']) or throwError(2500);
         $latestData = json_decode($json);
     
         

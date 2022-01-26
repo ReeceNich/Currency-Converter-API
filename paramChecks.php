@@ -13,7 +13,6 @@ function paramChecks() {
         exit();
     }
 
-    // TODO: *** ADD ERROR 1200!!! ***
     // Error 1200 is handled in the getRate function.
 
     // Checks currency amount is a decimal number in correct currency format

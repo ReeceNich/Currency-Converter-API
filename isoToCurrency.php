@@ -9,8 +9,9 @@ function isoToCurrency() {
     include_once("config.php");
     
     define("SOURCEXML", CONFIG["source_currencies"]);
-    define("OUTPUTXML", CONFIG["currencies"]);
-    define("DEFAULTCURRENCIES", array("AUD", "BRL", "CAD", "CHF", "CNY", "DKK", "EUR", "GBP", "HKD", "HUF", "INR", "JPY", "MXN", "MYR", "NOK", "NZD", "PHP", "RUB", "SEK", "SGD", "THB", "TRY", "USD", "ZAR"));
+    define("OUTPUTXML", CONFIG['currencies']);
+    // define("OUTPUTXML", CONFIG["currencies"]);
+    define("DEFAULTCURRENCIES", CONFIG['defaultcurrencies']);
 
     // Loads the XML into a variable.
     $source = simplexml_load_file(SOURCEXML);
@@ -22,18 +23,22 @@ function isoToCurrency() {
     // Create an XML file for the output.
     $output = new SimpleXMLElement("<currencies/>");
     $output->addAttribute("base", "GBP");
-    $output->addAttribute("ts", time());
+    $output->addAttribute("ts", "0");
 
 
-    // Some countries have the same currency code. This loop combines all countries with the same currencies into the same item.
+    // Some countries have the same currency code. This loop combines all countries with the same currencies into the one currency.
     $allCurrenciesCombined = [];
     foreach($entries as $entry) {
-        if(isset($allCurrenciesCombined[strval($entry->Ccy)])) {
+        if(isset($allCurrenciesCombined[(string)$entry->Ccy])) {
             // Found a duplicate Ccode, append country to existing values
             // echo "<br/>Duplicate found: $entry->Ccy, $entry->CtryNm";
-            $allCurrenciesCombined[strval($entry->Ccy)]["cntry"] .= ", " . strval($entry->CtryNm);
+
+            // Conversion to (string) required because all elements are of type SimpleXMLElement, not strings.
+
+            // Appends country name to the existing sentence of country names.
+            $allCurrenciesCombined[(string)$entry->Ccy]["cntry"] .= ", " . (string)$entry->CtryNm;
         } else {
-            $allCurrenciesCombined[strval($entry->Ccy)] = ["ccode"=>strval($entry->Ccy), "cname"=>strval($entry->CcyNm), "cntry"=>strval($entry->CtryNm)];
+            $allCurrenciesCombined[(string)$entry->Ccy] = ["ccode"=>(string)$entry->Ccy, "cname"=>(string)$entry->CcyNm, "cntry"=>(string)$entry->CtryNm];
         }
 
     }
@@ -48,6 +53,7 @@ function isoToCurrency() {
         $outputCurrency->addChild("cname", $entry["cname"]);
         $outputCurrency->addChild("cntry", $entry["cntry"]);
 
+        // If the currency is a default currency, add an empty rate element (ready for rate population later).
         if(in_array($entry["ccode"], DEFAULTCURRENCIES)) {
             $outputCurrency->addChild("rate", "");
         }

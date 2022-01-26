@@ -22,8 +22,15 @@ paramChecks();
 libxml_use_internal_errors(true);
 $currenciesXML = simplexml_load_file(CONFIG["currencies"]);
 if($currenciesXML == false) {
-	throwError(1500);
-	exit();
+	// The Currencies cannot be found, so recreate it.
+	include_once("factoryReset.php");
+	factoryReset();
+	// reopen the newly updated file.
+	$currenciesXML = simplexml_load_file(CONFIG["currencies"]);
+	if($currenciesXML == false) {
+		throwError(1500);
+		exit();
+	}
 }
 $currencies = $currenciesXML->xpath("/currencies");
 
@@ -32,7 +39,7 @@ $currencies = $currenciesXML->xpath("/currencies");
 if(time() - $currencies[0]->attributes()->ts >= 7200) {
 	include_once("getLatestRates.php");
 	getLatestRates();
-	// reopen the file
+	// reopen the newly updated file.
 	$currenciesXML = simplexml_load_file(CONFIG["currencies"]);
 	if($currenciesXML == false) {
 		throwError(1500);
@@ -40,10 +47,11 @@ if(time() - $currencies[0]->attributes()->ts >= 7200) {
 	}
 	$currencies = $currenciesXML->xpath("/currencies");
 	
-} else {
-	$lastUpdate = time() - $currencies[0]->attributes()->ts;
-	// echo "<p>Time since last update: " . $lastUpdate . " seconds</p>";
-}
+} 
+// else {
+// 	$lastUpdate = time() - $currencies[0]->attributes()->ts;
+// 	// echo "<p>Time since last update: " . $lastUpdate . " seconds</p>";
+// }
 
 
 $to = getCurrency($_GET['to'], $currenciesXML);
@@ -66,18 +74,18 @@ $convAmount = (1/$fromRate) * $_GET['amnt'] * $toRate;
 $convAmount = number_format($convAmount, 2, ".", "");
 
 if($_GET['format'] == "json") {
-	$responseFrom = array("code" => strval($from->ccode),
-						"curr" => strval($from->cname),
-						"loc" => strval($from->cntry),
+	$responseFrom = array("code" => (string)$from->ccode,
+						"curr" => (string)$from->cname,
+						"loc" => (string)$from->cntry,
 						"amnt" => $_GET['amnt']);
 
-	$responseTo = array("code" => strval($to->ccode),
-						"curr" => strval($to->cname),
-						"loc" => strval($to->cntry),
+	$responseTo = array("code" => (string)$to->ccode,
+						"curr" => (string)$to->cname,
+						"loc" => (string)$to->cntry,
 						"amnt" => $convAmount);
 
 	$responseConv = array("at" => date("d M Y G:i", strval($currencies[0]->attributes()->ts)),
-						"rate" => strval($to->rate),
+						"rate" => (string)$to->rate,
 						"from" => $responseFrom,
 						"to" => $responseTo);
 
@@ -90,18 +98,18 @@ if($_GET['format'] == "json") {
 } else {
 	$response = new SimpleXMLElement('<conv/>');
 	$repsonseAt = $response->addChild('at', date("d M Y G:i", strval($currencies[0]->attributes()->ts)));
-	$responseRate = $response->addChild('rate', strval($to->rate));
+	$responseRate = $response->addChild('rate', (string)$to->rate);
 
 	$responseFrom = $response->addChild('from');
-	$responseFrom->addChild("code", strval($from->ccode));
-	$responseFrom->addChild("curr", strval($from->cname));
-	$responseFrom->addChild("loc", strval($from->cntry));
+	$responseFrom->addChild("code", (string)$from->ccode);
+	$responseFrom->addChild("curr", (string)$from->cname);
+	$responseFrom->addChild("loc", (string)$from->cntry);
 	$responseFrom->addChild("amnt", $_GET['amnt']);
 
 	$responseTo = $response->addChild('to');
-	$responseTo->addChild("code", strval($to->ccode));
-	$responseTo->addChild("curr", strval($to->cname));
-	$responseTo->addChild("loc", strval($to->cntry));
+	$responseTo->addChild("code", (string)$to->ccode);
+	$responseTo->addChild("curr", (string)$to->cname);
+	$responseTo->addChild("loc", (string)$to->cntry);
 	$responseTo->addChild("amnt", $convAmount);
 
 	header('Content-type: application/xml');

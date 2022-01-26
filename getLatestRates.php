@@ -4,17 +4,20 @@ function getLatestRates() {
     // NOTE: THIS SEARCHES FOR CURRENCY CODE AND RETURNS WHOLE PARENT.
     // xpath("//*[ccode='']");
     include_once("config.php");
+    include_once("throwError.php");
 
     // define("LATESTAPI", "test_rates.json");
     define("INXML", CONFIG["currencies"]);
     define("OUTXML", CONFIG["currencies"]);
 
-    $json = file_get_contents(CONFIG['api_url']);
+    // @ suppresses built in warnings so i can handle the error manually.
+    $json = @file_get_contents(CONFIG['api_url']) or throwError(1500);
     $latestData = json_decode($json);
     libxml_use_internal_errors(true);
     $latestXML = simplexml_load_file(INXML);
     if($latestXML == false) {
         throwError(1500);
+        // Do any logging here if needed.
         exit();
     }
 
@@ -33,17 +36,13 @@ function getLatestRates() {
         // print_r($latestXML->xpath("//*[ccode='$code']"));
         try {
             $cur = $latestXML->xpath("//*[ccode='$code']");
-            if($cur == NULL) {
-                // echo "nothing found in local currency store for $code";
-            } else {
+            if($cur != NULL && isset($cur[0]->rate)) {
                 // If the currency is live, update the rate.
-                if(isset($cur[0]->rate)) {
-                    $cur[0]->rate = $rate;
-                }
+                $cur[0]->rate = $rate;
             }
-            
         } catch(Exception $e) {
-            echo "Failed on: {$code} - $e";
+            throwError(1500);
+            // echo "Failed on: {$code} - $e";
         }
         
     }
